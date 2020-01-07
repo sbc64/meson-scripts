@@ -1,9 +1,9 @@
 
-docker stop authority
+docker service rm authority
 for i in $(seq 0 1); do
-  docker stop provider-$i
+  docker service rm provider-$i
 done
 
 for i in $(seq 0 5); do
-  docker stop node-$i
+  docker service rm node-$i
 done

@@ -2,7 +2,7 @@
 docker service create --name authority -d \
   -p 30000:30000 \
   --mount type=bind,source=$HOME/configs/nonvoting,destination=/conf \
-  hashcloak/katzenpost-auth:master
+  hashcloak/katzenpost-auth:1c00188
 
 for i in $(seq 0 1); do
   port=$(($i+1))

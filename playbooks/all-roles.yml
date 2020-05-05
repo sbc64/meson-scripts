@@ -1,0 +1,14 @@
+---
+- hosts: all
+  roles:
+    - common
+    - root-work-server
+    - user
+    - docker-install
+    - ethereum-ssl-nginx
+    - go
+    - ipv4-forward
+    - k8-install
+    - sshd
+    - ufw
+    - wireguard

@@ -2,6 +2,8 @@ import digitalocean as do
 import argparse
 import time
 
+# remember to
+#export DIGITALOCEAN_ACCESS_TOKEN=''
 manager = do.Manager()
 tag="mixnet"
 floatinIps = {

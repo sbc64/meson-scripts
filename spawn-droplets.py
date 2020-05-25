@@ -41,6 +41,7 @@ def remove():
     droplets = manager.get_all_droplets(tag_name=tag)
     for droplet in droplets:
         droplet.destroy()
+        print("Destroyed: ", droplet.name)
 
 def saveIps():
     droplets = manager.get_all_droplets(tag_name=tag)
@@ -66,13 +67,13 @@ def dropletsReady(droplets):
     return True
 
 def assignFloatings(droplets):
-    my_list = [x for x in droplets if x.name in floatinIps.keys()]
-    for droplet in my_list: 
+    for droplet in [x for x in droplets if x.name in floatinIps.keys()]:
         flip = do.FloatingIP(ip=floatinIps[droplet.name])
         flip.assign(droplet.id)
+        print("Asiggned {} to {}".format(flip.ip, droplet.name))
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser = argparse.ArgumentParser(description='')
     parser.add_argument("-r", "--remove", action='store_true')
     parser.add_argument("-s", "--save", action='store_false')
     args = parser.parse_args()

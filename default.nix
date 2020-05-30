@@ -1,9 +1,22 @@
 with import <nixpkgs> { };
 
-stdenv.mkDerivation {
-  name = "python";
+let
+  pythonPackages = python38Packages;
+in pkgs.mkShell rec {
+  name = "meson-scripts-env";
+  venvDir = "./.venv";
   buildInputs = [
-    python38
-    python37Packages.digital-ocean
+    pythonPackages.python
+    pythonPackages.venvShellHook
+
+    openssl
+    git
   ];
+
+  # Now we can execute any commands within the virtual environment.
+  # This is optional and can be left out to run pip manually.
+  postShellHook = ''
+    pip install -r requirements.txt
+  '';
+
 }

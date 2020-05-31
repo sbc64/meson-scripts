@@ -13,12 +13,12 @@ floatinIps = {
 names = [
     "provider-0",
     "provider-1",
-    "mix-0",
-    "mix-1",
-    "mix-2",
-    "mix-3",
-    "mix-4",
-    "mix-5",
+    "node-0",
+    "node-1",
+    "node-2",
+    "node-3",
+    "node-4",
+    "node-5",
 ]
 names.extend(floatinIps.keys())
 
@@ -40,8 +40,9 @@ def create():
 def remove():
     droplets = manager.get_all_droplets(tag_name=tag)
     for droplet in droplets:
-        droplet.destroy()
-        print("Destroyed: ", droplet.name)
+        if "monitoring" != droplet.name:
+            droplet.destroy()
+            print("Destroyed: ", droplet.name)
 
 def generateSSHConfig():
     droplets = manager.get_all_droplets(tag_name=tag)
@@ -53,6 +54,7 @@ def generateSSHConfig():
             f.write("\tIdentityFile ~/.ssh/hashcloak\n")
             f.write("\tStrictHostKeyChecking no\n")
             f.write("\tServerAliveInterval 60\n")
+            f.write("\tUserKnownHostsFile /dev/null\n")
             f.write("\n")
 
     print("Generated ssh_config")

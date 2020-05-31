@@ -53,8 +53,8 @@ server {
   location / {
     # Not using 301 because sometimes the certs don't work
     # on my computer because NixOS needs custom certs
-    # return 301 https://\$host\$request_uri;
-    proxy_pass "http://$sub:$port";
+    return 301 https://\$host\$request_uri;
+    #proxy_pass "http://$sub:$port";
   }
 }
 

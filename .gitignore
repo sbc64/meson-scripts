@@ -1,2 +1,4 @@
 hosts
 .venv
+ssh_config
+output

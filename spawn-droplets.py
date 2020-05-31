@@ -51,6 +51,7 @@ def generateSSHConfig():
             f.write("\tHostname {}\n".format(droplet.ip_address))
             f.write("\tUser root\n")
             f.write("\tIdentityFile ~/.ssh/hashcloak\n")
+            f.write("\tStrictHostKeyChecking no\n")
             f.write("\tServerAliveInterval 60\n")
             f.write("\n")
 

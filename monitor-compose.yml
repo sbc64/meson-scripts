@@ -23,7 +23,7 @@ services:
       - grafana:/var/lib/grafana
 
   nginx:
-    image: sebohe/nginx:latest
+    image: sebohe/nginx:monitoring
     deploy:
       mode: global
     environment:

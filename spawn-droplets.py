@@ -43,6 +43,19 @@ def remove():
         droplet.destroy()
         print("Destroyed: ", droplet.name)
 
+def generateSSHConfig():
+    droplets = manager.get_all_droplets(tag_name=tag)
+    with open('ssh_config', 'w+') as f:
+        for droplet in droplets:
+            f.write("Host {}\n".format(droplet.name))
+            f.write("\tHostname {}\n".format(droplet.ip_address))
+            f.write("\tUser root\n")
+            f.write("\tIdentityFile ~/.ssh/hashcloak\n")
+            f.write("\tServerAliveInterval 60\n")
+            f.write("\n")
+
+    print("Generated ssh_config")
+
 def saveIps():
     droplets = manager.get_all_droplets(tag_name=tag)
     with open('hosts/hashcloak', 'w+') as f:
@@ -50,7 +63,7 @@ def saveIps():
         for droplet in droplets:
             f.write(droplet.ip_address+" ansible_user=root ansible_ssh_private_key_file=~/.ssh/hashcloak ansible_python_interpreter=/usr/bin/python3\n")
 
-    print("Saved ips for droplets")
+    print("saved ips for droplets")
 
 
 def dropletsReady(droplets):
@@ -85,5 +98,6 @@ if __name__ == '__main__':
         dropletsReady(droplets)
         assignFloatings(droplets)
         saveIps()
+        generateSSHConfig()
 
     print("Rate limit remaining: ", manager.ratelimit_remaining)

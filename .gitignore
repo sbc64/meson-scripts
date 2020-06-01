@@ -2,3 +2,5 @@ hosts
 .venv
 ssh_config
 output
+__pycache__
+.envrc

@@ -1,6 +1,8 @@
 from subprocess import run
 from collections import defaultdict
 
+from utils import readSSH
+
 def writePrometheus(hostnamesWithips):
     head = """
 global:
@@ -29,22 +31,11 @@ scrape_configs:
         for h, ip in hostnamesWithips.items():
             f.write(template.format(host=h.strip(), ip=ip.strip(), port=6543))
 
-
-def readSSH():
-    host = defaultdict(str)
-    temp=[]
-    with open('ssh_config', 'r') as f:
-        for line in f:
-            if "Host" in line:
-                temp.append(line)
-
-    for index in range(0, len(temp), 2):
-        host[temp[index].split(' ')[-1]] =  temp[index+1].split(' ')[-1]
-
-    return host 
-
 def main():
-    writePrometheus(readSSH())
+    hosts = readSSH()
+    del hosts["monitoring"]
+    del hosts["auth"]
+    writePrometheus(hosts)
 
     host = "monitoring:/root"
     scp = ["scp", "-F", "ssh_config"]
@@ -57,8 +48,8 @@ def main():
     args = scp + ["monitor-compose.yml", host]
     run(args)
 
-    args =  ["ssh", "-F", "ssh_config", "monitoring", "'docker stack deploy monitoring -c /root/monitor-compose.yml'"]
-    run(args)
+    args =  "ssh -F ssh_config monitoring 'docker stack deploy monitoring -c /root/monitor-compose.yml'"
+    run(args, shell=True)
 
 if __name__ == "__main__":
     main()

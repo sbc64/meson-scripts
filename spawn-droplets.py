@@ -23,7 +23,9 @@ names = [
 names.extend(floatinIps.keys())
 
 def create():
-    for name in names:
+    droplets = manager.get_all_droplets(tag_name=tag)
+    # Avoid duplicates with the set substraction
+    for name in list(set(names)-set([d.name for d in droplets])):
         droplet = do.Droplet(
                             name=name,
                             region='lon1',
@@ -70,7 +72,7 @@ def saveIps():
 
 
 def dropletsReady(droplets):
-    print("Waiting for droplets to be ready", end='')
+    print("Waiting for droplets to be ready")
     for droplet in droplets:
         while True:
             action = droplet.get_actions()[0]
@@ -85,8 +87,12 @@ def dropletsReady(droplets):
 def assignFloatings(droplets):
     for droplet in [x for x in droplets if x.name in floatinIps.keys()]:
         flip = do.FloatingIP(ip=floatinIps[droplet.name])
-        flip.assign(droplet.id)
-        print("Asiggned {} to {}".format(flip.ip, droplet.name))
+        try:
+            flip.assign(droplet.id)
+            print("Asiggned {} to {}".format(flip.ip, droplet.name))
+        except do.DataReadError as e:
+            print(e)
+            print("Continuing")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')

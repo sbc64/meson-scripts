@@ -2,6 +2,19 @@ import digitalocean as do
 import argparse
 import time
 
+nix="""#cloud-config
+write_files:
+- path: /etc/nixos/host.nix
+  permissions: '0644'
+  content: |
+    {pkgs, ...}:
+    {
+      environment.systemPackages = with pkgs; [ vim ];
+    }
+runcmd:
+  - curl https://raw.githubusercontent.com/elitak/nixos-infect/master/nixos-infect | NIXOS_IMPORT=./host.nix NIX_CHANNEL=nixos-20.03 bash 2>&1 | tee /tmp/infect.log
+  """
+
 # remember to
 #export DIGITALOCEAN_ACCESS_TOKEN=''
 manager = do.Manager()
@@ -22,22 +35,30 @@ names = [
 ]
 names.extend(floatinIps.keys())
 
-def create():
-    droplets = manager.get_all_droplets(tag_name=tag)
+def create(
+    name,
+    ssh_keys=[],
+    user_data="",
+    region="lon1",
+    image="ubuntu-16-04-x64",
+    size_slug='s-1vcpu-1gb',
+    tags="mixnet",
+):
+    print(ssh_keys)
     # Avoid duplicates with the set substraction
-    for name in list(set(names)-set([d.name for d in droplets])):
-        droplet = do.Droplet(
-                            name=name,
-                            region='lon1',
-                            image='debian-10-x64',
-                            size_slug='s-1vcpu-1gb',
-                            ssh_keys=manager.get_all_sshkeys(),
-                            tags=tag,
-                            backups=False,
-                            monitoring=True,
-                        )
-        droplet.create()
-        print("Created droplet:", droplet.name)
+    droplet = do.Droplet(
+        name=name,
+        region=region,
+        image=image,
+        size_slug=size_slug,
+        ssh_keys=manager.get_all_sshkeys(),
+        tags=tag,
+        backups=False,
+        monitoring=True,
+        user_data=user_data,
+    )
+    droplet.create()
+    print("Created droplet:", droplet.name, droplet.ip_address)
 
 def remove():
     droplets = manager.get_all_droplets(tag_name=tag)
@@ -98,15 +119,23 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument("-r", "--remove", action='store_true')
     parser.add_argument("-s", "--save", action='store_false')
+    parser.add_argument("-o", "--one", action='store_true')
     args = parser.parse_args()
+
+    ssh_keys = manager.get_all_sshkeys(),
     if args.remove:
         remove()
-    else:
-        create()
+    elif args.save and not args.one:
         droplets = manager.get_all_droplets(tag_name=tag)
+        for name in list(set(names)-set([d.name for d in droplets])):
+            create(name, image='debian-10-x64', ssh_keys=ssh_keys)
+
         dropletsReady(droplets)
         assignFloatings(droplets)
         saveIps()
         generateSSHConfig()
+    elif args.one:
+        print(ssh_keys)
+        create("nixos", ssh_keys=ssh_keys, user_data=nix)
 
     print("Rate limit remaining: ", manager.ratelimit_remaining)

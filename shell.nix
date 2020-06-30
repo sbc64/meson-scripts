@@ -7,8 +7,8 @@ in pkgs.mkShell rec {
   venvDir = "./.venv";
   buildInputs = [
     pythonPackages.python
+    pythonPackages.pip
     pythonPackages.venvShellHook
-
     openssl
     git
   ];

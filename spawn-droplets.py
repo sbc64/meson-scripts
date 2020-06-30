@@ -20,9 +20,9 @@ runcmd:
 manager = do.Manager()
 tag="mixnet"
 floatinIps = {
-        "auth": "159.65.210.250",
-        "monitoring": "157.245.28.48"
-    }
+    "auth": "159.65.210.250",
+    "monitoring": "157.245.28.48"
+}
 names = [
     "provider-0",
     "provider-1",
@@ -44,8 +44,6 @@ def create(
     size_slug='s-1vcpu-1gb',
     tags="mixnet",
 ):
-    print(ssh_keys)
-    # Avoid duplicates with the set substraction
     droplet = do.Droplet(
         name=name,
         region=region,
@@ -60,7 +58,7 @@ def create(
     droplet.create()
     print("Created droplet:", droplet.name, droplet.ip_address)
 
-def remove():
+def remove(tag=""):
     droplets = manager.get_all_droplets(tag_name=tag)
     for droplet in droplets:
         if "monitoring" != droplet.name:
@@ -119,7 +117,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument("-r", "--remove", action='store_true')
     parser.add_argument("-s", "--save", action='store_false')
-    parser.add_argument("-o", "--one", action='store_true')
+    parser.add_argument("-o", "--one", action='store_false')
     args = parser.parse_args()
 
     ssh_keys = manager.get_all_sshkeys(),
@@ -127,6 +125,7 @@ if __name__ == '__main__':
         remove()
     elif args.save and not args.one:
         droplets = manager.get_all_droplets(tag_name=tag)
+        # Avoid spawing duplicates VMS with the set substraction
         for name in list(set(names)-set([d.name for d in droplets])):
             create(name, image='debian-10-x64', ssh_keys=ssh_keys)
 
@@ -135,7 +134,6 @@ if __name__ == '__main__':
         saveIps()
         generateSSHConfig()
     elif args.one:
-        print(ssh_keys)
         create("nixos", ssh_keys=ssh_keys, user_data=nix)
 
     print("Rate limit remaining: ", manager.ratelimit_remaining)

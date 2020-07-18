@@ -8,6 +8,13 @@
     extraOptions = ''--metrics-addr=172.18.0.1:9323 --experimental'';
   };
 
+  networking.firewall = {
+    interfaces = {
+      "docker_gwbridge".allowedTCPPorts = [ 9323 ];
+    };
+    enable = true;
+  };
+
   environment.systemPackages = with pkgs; [
     git
     neovim

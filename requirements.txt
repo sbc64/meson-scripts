@@ -1,11 +1,12 @@
--i https://pypi.org/simple
 certifi==2020.4.5.1
 chardet==3.0.4
+click==7.1.2
 idna==2.9
 importlib-metadata==1.6.0
 jsonpickle==1.4.1
 python-digitalocean==1.15.0
-pyyaml==5.3.1
+PyYAML==5.3.1
 requests==2.23.0
+toml==0.10.1
 urllib3==1.25.9
 zipp==3.1.0

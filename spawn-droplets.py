@@ -1,53 +1,45 @@
 import digitalocean as do
-import argparse
 import time
+import sys
+import click
+import random
 
-nix="""#cloud-config
-write_files:
-- path: /etc/nixos/host.nix
-  permissions: '0644'
-  content: |
-    { config, pkgs, ... }:
-    {
-        virtualisation.docker = {
-            enable = true;
-            liveRestore = false;
-            enableOnBoot = true;
-            autoPrune.enable = true;
-        };
-    }
-runcmd:
-  - curl https://raw.githubusercontent.com/elitak/nixos-infect/master/nixos-infect | PROVIDER=digitalocean NIXOS_IMPORT=./host.nix NIX_CHANNEL=nixos-20.03 bash 2>&1 | tee /tmp/infect.log
-  """
+import pet_names
+import do_slugs
 
 # remember to
 #export DIGITALOCEAN_ACCESS_TOKEN=''
 manager = do.Manager()
-tag="mixnet"
-floatinIps = {
-    "auth": "159.65.210.250",
-    "monitoring": "157.245.28.48"
-}
-names = [
-    "provider-0",
-    "provider-1",
-    "node-0",
-    "node-1",
-    "node-2",
-    "node-3",
-    "node-4",
-    "node-5",
-]
-names.extend(floatinIps.keys())
+nix_default="""#cloud-config
+write_files:
+- path: /etc/nixos/host.nix
+  permissions: '0644'
+  content: |
+    {{pkgs, ...}}:
+    {}
+runcmd:
+    - curl https://raw.githubusercontent.com/elitak/nixos-infect/master/nixos-infect | PROVIDER=digitalocean NIXOS_IMPORT=./host.nix NIX_CHANNEL=nixos-20.03 bash 2>&1 | tee /tmp/infect.log
+"""
+def read_nix_config(file_path):
+    if not file_path:
+        return nix_default.format("{environment.systemPackages = with pkgs; [ vim git ];}")
+
+    with open(file_path, 'r') as f:
+        return(
+            # begining of line space is needed for cloud config to work
+            nix_default.format(
+                "    ".join(f.readlines())
+            )
+        )
 
 def create(
-    name,
-    ssh_keys=[],
-    user_data="",
-    region="lon1",
-    image="ubuntu-16-04-x64",
-    size_slug='s-1vcpu-1gb',
-    tags="mixnet",
+        name: str,
+        ssh_keys: list,
+        user_data: str,
+        region:str,
+        image:str,
+        size_slug: str,
+        tags:str,
 ):
     droplet = do.Droplet(
         name=name,
@@ -55,7 +47,7 @@ def create(
         image=image,
         size_slug=size_slug,
         ssh_keys=manager.get_all_sshkeys(),
-        tags=tag,
+        tags=tags,
         backups=False,
         monitoring=True,
         user_data=user_data,
@@ -63,37 +55,12 @@ def create(
     droplet.create()
     print("Created droplet:", droplet.name, droplet.ip_address)
 
-def remove(tag=""):
+def destroy_tag(tag):
     droplets = manager.get_all_droplets(tag_name=tag)
     for droplet in droplets:
         if "monitoring" != droplet.name:
             droplet.destroy()
             print("Destroyed: ", droplet.name)
-
-def generateSSHConfig():
-    droplets = manager.get_all_droplets(tag_name=tag)
-    with open('ssh_config', 'w+') as f:
-        for droplet in droplets:
-            f.write("Host {}\n".format(droplet.name))
-            f.write("\tHostname {}\n".format(droplet.ip_address))
-            f.write("\tUser root\n")
-            f.write("\tIdentityFile ~/.ssh/hashcloak\n")
-            f.write("\tStrictHostKeyChecking no\n")
-            f.write("\tServerAliveInterval 60\n")
-            f.write("\tUserKnownHostsFile /dev/null\n")
-            f.write("\n")
-
-    print("Generated ssh_config")
-
-def saveIps():
-    droplets = manager.get_all_droplets(tag_name=tag)
-    with open('hosts/hashcloak', 'w+') as f:
-        f.write("[mixnet]\n")
-        for droplet in droplets:
-            f.write(droplet.ip_address+" ansible_user=root ansible_ssh_private_key_file=~/.ssh/hashcloak ansible_python_interpreter=/usr/bin/python3\n")
-
-    print("saved ips for droplets")
-
 
 def dropletsReady(droplets):
     print("Waiting for droplets to be ready")
@@ -118,27 +85,59 @@ def assignFloatings(droplets):
             print(e)
             print("Continuing")
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='')
-    parser.add_argument("-r", "--remove", action='store_true')
-    parser.add_argument("-s", "--save", action='store_false')
-    parser.add_argument("-o", "--one", action='store_false')
-    args = parser.parse_args()
+@click.command()
+@click.option('--count', default=1)
+@click.option('--organization', '--org', default="")
+@click.option('--name', default=pet_names.random_person())
+@click.option('--tags', required=True, default="")
+@click.option('--remove', '-r', 'remove', flag_value=True, default=False)
+@click.option(
+    '--size-slug',
+    '--size',
+    default='s-1vcpu-1gb',
+    type=click.Choice(do_slugs.sizes, case_sensitive=False)
+)
+@click.option(
+    '--region',
+    default=random.choice(do_slugs.locations),
+    type=click.Choice(do_slugs.locations, case_sensitive=True)
+)
+@click.option(
+    '--image',
+    default='ubuntu-16-04-x64',
+    type=click.Choice(do_slugs.images, case_sensitive=False)
+)
+@click.option(
+    '--nix-path',
+    help="File path copntaning a nix expression",
+)
+def main(
+    count,
+    organization,
+    name,
+    tags,
+    remove,
+    size_slug,
+    region,
+    image,
+    nix_path,
+):
 
-    ssh_keys = manager.get_all_sshkeys(),
-    if args.remove:
-        remove()
-    elif args.save and not args.one:
-        droplets = manager.get_all_droplets(tag_name=tag)
-        # Avoid spawing duplicates VMS with the set substraction
-        for name in list(set(names)-set([d.name for d in droplets])):
-            create(name, image='debian-10-x64', ssh_keys=ssh_keys)
-
-        dropletsReady(droplets)
-        assignFloatings(droplets)
-        saveIps()
-        generateSSHConfig()
-    elif args.one:
-        create("nixos", ssh_keys=ssh_keys, user_data=nix)
+    ssh_keys = manager.get_all_sshkeys()
+    if remove: destroy_tag(tags)
+    else:
+        for i in range(count):
+            create(
+                pet_names.random_person(),
+                ssh_keys=ssh_keys,
+                image=image,
+                user_data=read_nix_config(nix_path),
+                size_slug=size_slug,
+                tags=tags,
+                region=random.choice(do_slugs.locations),
+            )
 
     print("Rate limit remaining: ", manager.ratelimit_remaining)
+
+if __name__ == '__main__':
+    main()

@@ -97,3 +97,28 @@ def generate_service(
             service += '{s}- "{dep}"\n'.format(s=indent*3, dep=item)
 
     return service
+
+def generateSSHConfig():
+    droplets = manager.get_all_droplets(tag_name=tag)
+    with open('ssh_config', 'w+') as f:
+        for droplet in droplets:
+            f.write("Host {}\n".format(droplet.name))
+            f.write("\tHostname {}\n".format(droplet.ip_address))
+            f.write("\tUser root\n")
+            f.write("\tIdentityFile ~/.ssh/hashcloak\n")
+            f.write("\tStrictHostKeyChecking no\n")
+            f.write("\tServerAliveInterval 60\n")
+            f.write("\tUserKnownHostsFile /dev/null\n")
+            f.write("\n")
+
+    print("Generated ssh_config")
+
+def saveIps():
+    droplets = manager.get_all_droplets(tag_name=tag)
+    with open('hosts/hashcloak', 'w+') as f:
+        f.write("[mixnet]\n")
+        for droplet in droplets:
+            f.write(droplet.ip_address+" ansible_user=root ansible_ssh_private_key_file=~/.ssh/hashcloak ansible_python_interpreter=/usr/bin/python3\n")
+
+    print("saved ips for droplets")
+

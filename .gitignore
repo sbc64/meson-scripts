@@ -4,3 +4,5 @@ ssh_config
 output
 __pycache__
 .envrc
+client.toml
+mixnet_conf

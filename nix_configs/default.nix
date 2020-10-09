@@ -1,10 +1,7 @@
 {pkgs, ...}:
 let
   swarmMetricsPort = 9323;
-  gwIP = "172.18.0";
-  dockerBridgeIp = gwIP + ".0/16";
-  dockerBridgeGateway = gwIP + ".1";
-  dockerBridgeServiceName = "setup-docker-bridge-network";
+  dockerbip="172.18.0.1";
 in {
 
   imports = [
@@ -19,6 +16,9 @@ in {
 
   services = {
     do-agent.enable = true;
+    openssh = {
+      passwordAuthentication = false;
+    };
   };
   environment.systemPackages = with pkgs; [ 
     vim git neovim htop curl wget gnumake42 fd ripgrep starship
@@ -68,33 +68,16 @@ in {
     liveRestore = false;
     enableOnBoot = true;
     autoPrune.enable = true;
-    extraOptions = ''--metrics-addr=172.17.0.1:${toString swarmMetricsPort} --experimental'';
+    extraOptions = ''--metrics-addr=${dockerbip}:${toString swarmMetricsPort} --experimental --bip=${dockerbip}/16'';
   };
-
-  systemd.services."${dockerBridgeServiceName}" = {
-    description = "Sets the docker ";
+  systemd.services.init-swarm = {
+    enable = true;
+    description = "Init Docker swarm";
     wantedBy = [ "multi-user.target" ];
     after = [ "docker.service" ];
     requires = [ "docker.service" ];
     script = ''
-      docker network create \
-        --subnet=${dockerBridgeIp} \
-        --gateway ${dockerBridgeGateway} \
-        -o com.docker.network.bridge.enable_icc=false \
-        -o com.docker.network.bridge.name=docker_gwbridge \
-        #-o com.docker.network.bridge.enable_ip_masquerade=true \
-        docker_gwbridge
-    '';
-    serviceConfig.Type="oneshot";
-  };
-
-  systemd.services.init-swarm = {
-    description = "Init Docker swarm";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "docker.service" ];
-    requires = [ "docker.service" "${dockerBridgeGateway}" ];
-    script = ''
-      IP=$(${pkgs.curl}/bin/curl -s https://ident.me)
+      IP=$(${pkgs.iproute}/bin/ip route get 1.1.1.1 | cut -f 7 -d ' ')
       ${pkgs.docker}/bin/docker swarm init --advertise-addr=$IP || true
     '';
     serviceConfig.Type="oneshot";

@@ -1,6 +1,10 @@
+with import <nixpkgs> {};
 let
   appName = "healthcheck";
-  scale = "10";
+  # Recommended node size is 4 cpu and 8gb can handle
+  # 100 nodes
+  # The biggest limitation is cpu
+  scale = "120";
   composeFile = pkgs.writeText "docker-compose.yml" ''
     version: "3"
     services:
@@ -21,6 +25,11 @@ let
   '';
 in
 {
+  environment.systemPackages = with pkgs; [
+    htop
+    vim
+  ];
+
   services.do-agent.enable = true;
   virtualisation.docker = {
      enable = true;

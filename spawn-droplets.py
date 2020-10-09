@@ -15,31 +15,13 @@ write_files:
 - path: /etc/nixos/host.nix
   permissions: '0644'
   content: |
-    {{pkgs, ...}}:
     {}
 runcmd:
     - curl https://raw.githubusercontent.com/elitak/nixos-infect/master/nixos-infect | PROVIDER=digitalocean NIXOS_IMPORT=./host.nix NIX_CHANNEL=nixos-20.03 bash 2>&1 | tee /tmp/infect.log
 """
-def read_nix_config(file_path):
-    if not file_path:
-        return nix_default.format("{environment.systemPackages = with pkgs; [ vim git ];}")
 
-    with open(file_path, 'r') as f:
-        return(
-            # begining of line space is needed for cloud config to work
-            nix_default.format(
-                "    ".join(f.readlines())
-            )
-        )
-
-def create(
-        name: str,
-        ssh_keys: list,
-        user_data: str,
-        region:str,
-        image:str,
-        size_slug: str,
-        tags:str,
+def create(name: str, ssh_keys: list, user_data: str, region:str,
+    image:str, size_slug: str, tags:str,
 ):
     droplet = do.Droplet(
         name=name,
@@ -88,8 +70,8 @@ def assignFloatings(droplets):
 @click.command()
 @click.option('--count', default=1)
 @click.option('--organization', '--org', default="")
-@click.option('--name', default=pet_names.random_person())
-@click.option('--tags', required=True, default="")
+@click.option('--name', default="random")
+@click.option('--tags', required=True)
 @click.option('--remove', '-r', 'remove', flag_value=True, default=False)
 @click.option(
     '--size-slug',
@@ -109,32 +91,37 @@ def assignFloatings(droplets):
 )
 @click.option(
     '--nix-path',
-    help="File path copntaning a nix expression",
+    default="./nix_configs/default.nix",
+    help="File path containing a nix expression",
 )
-def main(
-    count,
-    organization,
-    name,
-    tags,
-    remove,
-    size_slug,
-    region,
-    image,
-    nix_path,
+def main(count, organization, name, tags, remove,
+    size_slug, region, image, nix_path,
 ):
 
     ssh_keys = manager.get_all_sshkeys()
+
+    with open(nix_path, 'r') as f:
+        user_data = nix_default.format("    ".join(f.readlines()))
+
     if remove: destroy_tag(tags)
     else:
         for i in range(count):
+            # These values are random so we need to check
+            tempName=name
+            if name == "random":
+                tempName=pet_names.random_person()
+            tempRegion=region
+            if region == "random":
+                tempRegion=random.choice(do_slugs.locations)
+
             create(
-                pet_names.random_person(),
+                tempName,
                 ssh_keys=ssh_keys,
                 image=image,
-                user_data=read_nix_config(nix_path),
+                user_data = user_data,
                 size_slug=size_slug,
                 tags=tags,
-                region=random.choice(do_slugs.locations),
+                region=tempRegion,
             )
 
     print("Rate limit remaining: ", manager.ratelimit_remaining)

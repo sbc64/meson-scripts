@@ -44,8 +44,8 @@ in {
         }}
         source "${pkgs.fetchurl {
           name = "zshrc";
-          url = "https://raw.githubusercontent.com/sebohe/dotfiles/71ec7adab84619418f08b95d5cdf69629efc8606/.zshrc";
-          sha256 = "7eba8b9ad5e92181bd3f61fdd42c02304486ad37b8b5077db1499050968e4826";
+          url = "https://raw.githubusercontent.com/sebohe/dotfiles/8a6370cea1e39285dbc2909fa9fb51d1a3329fed/.zshrc";
+          sha256 = "0e3780f1dc657e612117f504a25b67aa24e35addc04a1cd0c2f7fc4c90d480c9";
         }}"
       '';
       promptInit = "";

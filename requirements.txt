@@ -5,7 +5,7 @@ idna==2.9
 importlib-metadata==1.6.0
 jsonpickle==1.4.1
 python-digitalocean==1.15.0
-PyYAML==5.3.1
+PyYAML==5.4
 requests==2.23.0
 toml==0.10.1
 urllib3==1.25.9

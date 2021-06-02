@@ -8,5 +8,5 @@ python-digitalocean==1.15.0
 PyYAML==5.3.1
 requests==2.23.0
 toml==0.10.1
-urllib3==1.25.9
+urllib3==1.26.5
 zipp==3.1.0
